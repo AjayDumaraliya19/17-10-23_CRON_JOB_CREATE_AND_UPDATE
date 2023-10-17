@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { Pool } = require("../db/dbconnection");
 
 /** Get the curent data */
 const currentDate = new Date();
@@ -26,7 +27,7 @@ function logDirectory(baseDir) {
   /** Defined the file name using the current hour */
   const fileName = `${currentHour}.txt`;
 
-  /** Construct the full fiel path */
+  /** Construct the full file path */
   const filePath = path.join(folderPath, fileName);
   return filePath;
 }
@@ -46,6 +47,7 @@ function createUpdateFolder(baseDir) {
   return updateFolder;
 }
 
+/** Create and update the file here */
 const logdataFile = async () => {
   const logMsg = `This file was created by a node-cron job\n`;
 
@@ -74,5 +76,30 @@ const logdataFile = async () => {
   });
 };
 
+/** Create and update the file using the MYSQL data */
+const sqlData = async () => {
+  /** Create Query base data */
+  Pool.query("SELECT * FROM practics.employee", function (err, result) {
+    if (err) throw err;
+
+    var data = JSON.stringify(result);
+
+    /** Define the file path */
+    const filePath = path.join(__dirname, "../../public/data.json", folderName);
+
+    /** Check if the directory exists, if not, create it */
+    const directory = path.dirname(filePath);
+    if (!fs.existsSync(directory)) {
+      fs.mkdirSync(directory, { recursive: true });
+    }
+
+    /** Create file using the fs module */
+    fs.writeFile(filePath, data, function (err) {
+      if (err) throw err;
+      console.log("Data written to file");
+    });
+  });
+};
+
 /** Exports all data module here */
-module.exports = { logdataFile };
+module.exports = { logdataFile, sqlData };

@@ -180,66 +180,105 @@
 //   });
 // };
 
+// const fs = require("fs");
+// const path = require("path");
 
+// function logDirectory(baseDir) {
+//   const currentDate = new Date();
+//   const currentYear = currentDate.getFullYear();
+//   const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, "0");
+//   const currentDay = currentDate.getDate().toString().padStart(2, "0");
+//   const currentHour = currentDate.getHours().toString().padStart(2, "0");
+//   const folderName = `${currentYear}${currentMonth}${currentDay}`;
+//   const folderPath = path.join(baseDir, "../../Public/LogFile/", folderName);
 
-const fs = require("fs");
+//   if (!fs.existsSync(folderPath)) {
+//     fs.mkdirSync(folderPath, { recursive: true });
+//   }
+
+//   const fileName = `${currentHour}.txt`;
+//   const filePath = path.join(folderPath, fileName);
+//   return filePath;
+// }
+
+// function createUpdateFolder(baseDir) {
+//   const currentDate = new Date();
+//   const currentYear = currentDate.getFullYear();
+//   const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, "0");
+//   const currentDay = currentDate.getDate().toString().padStart(2, "0");
+//   const folderName = `${currentYear}${currentMonth}${currentDay}`;
+//   const updateFolder = path.join(baseDir, "../../Public/UpdateFolder", folderName);
+
+//   if (!fs.existsSync(updateFolder)) {
+//     fs.mkdirSync(updateFolder, { recursive: true });
+//   }
+
+//   return updateFolder;
+// }
+
+// const logdataFile = async () => {
+//   const logMsg = `This file was created by a node-cron job\n`;
+
+//   const logDir = await logDirectory(__dirname);
+//   console.log(logDir);
+
+//   const updateFolder = createUpdateFolder(__dirname);
+//   console.log(updateFolder);
+
+//   fs.appendFile(logDir, logMsg, (err) => {
+//     if (err) {
+//       console.error("Error writing to log file:", err);
+//     }
+//   });
+
+//   const updateFileName = `update_${Date.now()}.txt`;
+//   const updateFilePath = path.join(updateFolder, updateFileName);
+//   fs.writeFile(updateFilePath, logMsg, (err) => {
+//     if (err) {
+//       console.error("Error writing to update file:", err);
+//     }
+//   });
+// };
+
+// module.exports = { logdataFile };
+
+var mysql = require("mysql2");
+var cron = require("node-cron");
+var fs = require("fs");
 const path = require("path");
 
-function logDirectory(baseDir) {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, "0");
-  const currentDay = currentDate.getDate().toString().padStart(2, "0");
-  const currentHour = currentDate.getHours().toString().padStart(2, "0");
-  const folderName = `${currentYear}${currentMonth}${currentDay}`;
-  const folderPath = path.join(baseDir, "../../Public/LogFile/", folderName);
+var connection = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  password: "Admin",
+  database: "practics",
+});
 
-  if (!fs.existsSync(folderPath)) {
-    fs.mkdirSync(folderPath, { recursive: true });
-  }
+connection.connect(function (err) {
+  if (err) throw err;
+  console.log("Connected to database");
+});
 
-  const fileName = `${currentHour}.txt`;
-  const filePath = path.join(folderPath, fileName);
-  return filePath;
-}
+cron.schedule("*/5 * * * * *", function () {
+  console.log("Running cron job");
 
-function createUpdateFolder(baseDir) {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, "0");
-  const currentDay = currentDate.getDate().toString().padStart(2, "0");
-  const folderName = `${currentYear}${currentMonth}${currentDay}`;
-  const updateFolder = path.join(baseDir, "../../Public/UpdateFolder", folderName);
+  connection.query("SELECT * FROM practics.employee", function (err, result) {
+    if (err) throw err;
 
-  if (!fs.existsSync(updateFolder)) {
-    fs.mkdirSync(updateFolder, { recursive: true });
-  }
+    var data = JSON.stringify(result);
 
-  return updateFolder;
-}
+    // Define the file path
+    const filePath = path.join(__dirname, "public/data.json");
 
-const logdataFile = async () => {
-  const logMsg = `This file was created by a node-cron job\n`;
-
-  const logDir = await logDirectory(__dirname);
-  console.log(logDir);
-
-  const updateFolder = createUpdateFolder(__dirname);
-  console.log(updateFolder);
-
-  fs.appendFile(logDir, logMsg, (err) => {
-    if (err) {
-      console.error("Error writing to log file:", err);
+    // Check if the directory exists, if not, create it
+    const directory = path.dirname(filePath);
+    if (!fs.existsSync(directory)) {
+      fs.mkdirSync(directory, { recursive: true });
     }
-  });
 
-  const updateFileName = `update_${Date.now()}.txt`;
-  const updateFilePath = path.join(updateFolder, updateFileName);
-  fs.writeFile(updateFilePath, logMsg, (err) => {
-    if (err) {
-      console.error("Error writing to update file:", err);
-    }
+    fs.writeFile(filePath, data, function (err) {
+      if (err) throw err;
+      console.log("Data written to file");
+    });
   });
-};
-
-module.exports = { logdataFile };
+});

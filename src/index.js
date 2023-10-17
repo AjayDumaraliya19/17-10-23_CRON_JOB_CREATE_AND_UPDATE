@@ -1,6 +1,6 @@
 const cron = require("node-cron");
-const {Pool} = require("./db/dbconnection");
-const { logdataFile } = require("./middlewares/upload");
+const { Pool } = require("./db/dbconnection");
+const { logdataFile, sqlData } = require("./middlewares/upload");
 
 /* ---------------------- Database connection ---------------------- */
 Pool.getConnection(function (err) {
@@ -15,5 +15,11 @@ Pool.getConnection(function (err) {
 
 /* -------------- Cron job for the log file in every 5 seconds -------------- */
 cron.schedule("*/5 * * * * *", function () {
+  /** Create file and upload the file using the node-cron */
+  console.log("Scheduler started");
   logdataFile();
+
+  /** Create file and overwrite the file using the MYSQL data */
+  console.log("Running cron job");
+  sqlData();
 });
